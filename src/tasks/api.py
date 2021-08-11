@@ -1,4 +1,5 @@
-﻿from collections import namedtuple
+﻿from bson.objectid import ObjectId
+from collections import namedtuple
 from typing import List, Literal, Optional, Union
 
 import tasks.tasksdb_tinydb
@@ -7,7 +8,8 @@ import tasks.tasksdb_pymongo
 Task = namedtuple('Task', 'summary owner done id',
                   defaults=(None, None, False, None))
 
-Database = Union[tasks.tasksdb_tinydb.TasksDB_TinyDB]
+Database = Union[tasks.tasksdb_tinydb.TasksDB_TinyDB,
+                 tasks.tasksdb_pymongo.TasksDB_MongoDB]
 
 
 class TasksException(Exception):
@@ -18,7 +20,7 @@ class UninitializedDatabase(TasksException):
     """Call tasks.start_tasks_db() before other functions."""
 
 
-def add(task: Task) -> int:
+def add(task: Task) -> Union[int, ObjectId]:
     """Add a task to the tasks database."""
     if not isinstance(task, Task):
         raise TypeError('task must be a Task object')
@@ -26,12 +28,13 @@ def add(task: Task) -> int:
     return task_id
 
 
-def get(task_id: int) -> Task:
-    if not isinstance(task_id, int):
-        raise TypeError('task_id must be an integer')
+def get(task_id: Union[int, ObjectId]) -> Task:
+    if not (isinstance(task_id, int) or isinstance(task_id, ObjectId)):
+        raise TypeError('task_id must be an integer or ObjectId')
     if _tasks_db is None:
         raise UninitializedDatabase
     task_dict = _tasks_db.get(task_id)
+    print(task_dict)
     return Task(**task_dict)
 
 
@@ -41,11 +44,16 @@ def list_tasks(owner: Optional[str] = None) -> List[Task]:
 
 
 def count() -> int:
-    ...
+    if _tasks_db is None:
+        raise UninitializedDatabase
+    return _tasks_db.count()
 
 
 def update(task_id: int, task: Task) -> None:
-    ...
+    if not isinstance(task_id, int):
+        raise TypeError('task_id must be an integer')
+    if not isinstance(task, Task):
+        raise TypeError('task must be a Task')
 
 
 def delete(task_id: int) -> None:
@@ -53,10 +61,13 @@ def delete(task_id: int) -> None:
 
 
 def delete_all() -> None:
-    ...
+    """Remove all tasks from the db."""
+    if _tasks_db is None:
+        raise UninitializedDatabase
+    _tasks_db.delete_all()
 
 
-def unique_id() -> int:
+def unique_id() -> Union[int, ObjectId]:
     """Return an integer that does not exist in the the db."""
     if _tasks_db is None:
         raise UninitializedDatabase
@@ -73,6 +84,8 @@ def start_tasks_db(db_path: str, db_type: Literal['tiny', 'mongo']) -> None:
     global _tasks_db
     if db_type == 'tiny':
         _tasks_db = tasks.tasksdb_tinydb.start_tasks_db(db_path)
+    else:
+        _tasks_db = tasks.tasksdb_pymongo.start_tasks_db(db_path)
 
 
 def stop_tasks_db() -> None:

@@ -1,10 +1,11 @@
 ﻿.PHONY: install, test, rate, clean
 
 install:
-	venv/scripts/pip.exe install -e . --use-feature=in-tree-build
+	. venv/Scripts/activate
+	pip install -e . --use-feature=in-tree-build;
 
 test:
-	venv/scripts/python.exe -m pytest tests -v ${args}
+	pytest tests -v ${args}
 
 rate:
 	-flake8 src/tasks
@@ -12,3 +13,4 @@ rate:
 
 clean:
 	@echo hello $(name)
+	which pip

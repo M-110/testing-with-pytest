@@ -41,16 +41,6 @@ def test_unique_id_is_a_duck():
     uid = tasks.unique_id()
     # THEN the id should not be a duck
     assert uid == 'a duck'
-
-
-@pytest.mark.xfail()
-def test_unique_id_is_a_duck2():
-    """unique_id should not produce a duck."""
-    # GIVEN a task db
-    # WHEN an id is received an id from unique_id()
-    uid = tasks.unique_id()
-    # THEN the id should not be a duck
-    assert uid != 'a duck'
     
 
 @pytest.fixture(autouse=True)
@@ -63,3 +53,4 @@ def initialized_tasks_db(tmpdir):
 
     # Teardown: stop db
     tasks.stop_tasks_db()
+    

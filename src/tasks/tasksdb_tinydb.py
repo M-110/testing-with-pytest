@@ -4,7 +4,7 @@ from typing import List
 import tinydb
 
 
-class TasksDB_TinyDB():
+class TasksDB_TinyDB:
     """Wrapper class for TinyDB."""
     
     def __init__(self, db_path: str) -> None:
@@ -42,7 +42,7 @@ class TasksDB_TinyDB():
         
     def delete_all(self):
         """Remove all tasks from db."""
-        self._db.purge()
+        self._db.truncate()
         
     def unique_id(self) -> int:
         """Return an integer that does not exist in the db."""
