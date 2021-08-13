@@ -3,10 +3,15 @@
 import pytest
 
 import tasks
-from tasks import Task
+from tasks import Task, UninitializedDatabase
 
 
-def test_add_raises():
+def test_raises_no_db():
+    with pytest.raises(UninitializedDatabase):
+        tasks.add(Task('Hello'))
+
+
+def test_add_raises(tasks_db):
     """Raise exception when parameter isn't a Task."""
     with pytest.raises(TypeError):
         tasks.add(task='Some string')
@@ -21,7 +26,7 @@ def test_start_tasks_db_raises():
     
     
 @pytest.mark.smoke
-def test_list_raises():
+def test_list_raises(tasks_db):
     """Raises exception if owner is not a string."""
     with pytest.raises(TypeError):
         tasks.list_tasks(owner=500)
@@ -29,7 +34,7 @@ def test_list_raises():
 
 @pytest.mark.get
 @pytest.mark.smoke
-def test_get_raises():
+def test_get_raises(tasks_db):
     """Raises exception if task_id is not an integer."""
     with pytest.raises(TypeError):
         tasks.get(task_id=1.0)
@@ -38,27 +43,27 @@ def test_get_raises():
 class TestUpdate:
     """Test expected exceptions with tasks.update()"""
     
-    def test_bad_id(self):
+    def test_bad_id(self, tasks_db):
         """A non-int id should raise an exception."""
         with pytest.raises(TypeError):
             tasks.update(task_id={'dict instead': 1}, task=tasks.Task())
             
-    def test_bad_task(self):
+    def test_bad_task(self, tasks_db):
         """A non-Task should raise an exception!"""
         with pytest.raises(TypeError):
             tasks.update(task_id=1, task='not a task!')
 
 
-@pytest.mark.userfixtures('tasks_db')
+#@pytest.mark.userfixtures('tasks_db')
 class TestAdd():
     """Tests related to tasks.add()."""
 
-    def test_missing_summary(self):
+    def test_missing_summary(self, tasks_db):
         """Should raise exception if summary is missing."""
         with pytest.raises(ValueError):
             tasks.add(Task(owner='bob'))
 
-    def test_done_not_bool(self):
+    def test_done_not_bool(self, tasks_db):
         """Should raise an exception if done is not a bool."""
         with pytest.raises(ValueError):
             tasks.add(Task(summary='summary', done='True'))

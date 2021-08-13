@@ -29,7 +29,7 @@ def test_add_2(task):
                          [('sleep', None, True),
                           ('wake up', 'Angel'),
                           ('run', 'CAPTAIN', False),
-                          ('walk')])
+                          ('walk',)])
 def test_add_3(task):
     """tasks.get() using id returned from add works."""
     task_id = tasks.add(Task(*task))

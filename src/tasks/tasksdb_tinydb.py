@@ -20,7 +20,10 @@ class TasksDB_TinyDB:
     
     def get(self, task_id: int) -> dict:
         """Return a task dict with the matching id."""
-        return self._db.get(doc_id=task_id)
+        task = self._db.get(doc_id=task_id)
+        if task is None:
+            raise ValueError('Could not find task')
+        return task
     
     def list_tasks(self, owner: str) -> List[dict]:
         """Return a list of tasks."""

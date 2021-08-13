@@ -2,11 +2,20 @@
 import os
 import subprocess
 import time
-from typing import List
+from typing import List, Optional
 
 import pymongo
 from bson.objectid import ObjectId
 from pymongo.errors import ConnectionFailure
+
+
+def int_to_ObjectId(num: int):
+    """Convert an int to a ObjectId with a hexadecimal value."""
+    return ObjectId(hex(num)[2:])
+
+
+def ObjectId_to_int(id_: ObjectId):
+    return int(str(id_), 16)
 
 
 class TasksDB_MongoDB:
@@ -16,7 +25,7 @@ class TasksDB_MongoDB:
         """Connect to db."""
         self._process = None
         self._client = None
-        self._db = None
+        self._db: Optional[pymongo.MongoClient] = None
         self._start_mongod(db_path)
         self._connect()
 
@@ -37,16 +46,9 @@ class TasksDB_MongoDB:
     def _connect(self):
         """Connect to mongo db."""
         if self._process and (not self._client or not self._db):
-            for _ in range(3):
-                try:
-                    self._client = pymongo.MongoClient()
-                except ConnectionFailure:
-                    time.sleep(0.1)
-                    continue
-                else:
-                    break
-            if self._client:
-                self._db = self._client.task_list
+            self._client = pymongo.MongoClient()
+        if self._client:
+            self._db = self._client.task_list
 
     def _disconnect(self):
         """Disconnect from mongo db."""
@@ -55,18 +57,30 @@ class TasksDB_MongoDB:
 
     def add(self, task: dict) -> int:
         """Add task dict to the db."""
-        return self._db.task_list.insert_one(task).inserted_id
+        inserted_id: ObjectId = self._db.task_list.insert_one(
+            task).inserted_id
+        return ObjectId_to_int(inserted_id)
 
     def get(self, task_id: int) -> dict:
         """Return a task dict with the matching id."""
-        task_dict = self._db.task_list.find_one({'_id': ObjectId(task_id)})
-        task_dict['id'] = task_dict['_id']
+        task_id = int_to_ObjectId(task_id)
+        task_dict = self._db.task_list.find_one({'_id': task_id})
+        if task_dict is None:
+            raise ValueError('Could not find task')
+        task_dict['id'] = ObjectId_to_int(task_dict['_id'])
         del task_dict['_id']
         return task_dict
 
     def list_tasks(self, owner: str) -> List[dict]:
         """Return a list of tasks."""
-        return list(self._db.task_list.find())
+        if owner:
+            all_tasks = list(self._db.task_list.find({'owner': owner}))
+        else:
+            all_tasks = list(self._db.task_list.find())
+        for task in all_tasks:
+            task['id'] = ObjectId_to_int(task['_id'])
+            del task['_id']
+        return all_tasks
 
     def count(self) -> int:
         """Return the number of tasks in the db."""
@@ -74,10 +88,16 @@ class TasksDB_MongoDB:
 
     def update(self, task_id: int, task: dict) -> None:
         """Modify a task in the db."""
-        self._db.tasks_list.update_one({'_id': ObjectId(task_id)}, task)
+        self._db.task_list.update_one(
+            {'_id': int_to_ObjectId(task_id)},
+            {'$set': {'owner': task['owner'],
+                      'summary': task['summary'],
+                      'done': task['done']}}
+        )
 
     def delete(self, task_id: int) -> None:
         """Remove the task from the db."""
+        task_id = int_to_ObjectId(task_id)
         reply = self._db.task_list.delete_one({'_id': ObjectId(task_id)})
         if reply.deleted_count == 0:
             raise ValueError(f'id {task_id!r} not in task database')
@@ -86,9 +106,10 @@ class TasksDB_MongoDB:
         """Remove all tasks from db."""
         self._db.task_list.drop()
 
-    def unique_id(self) -> int:
+    @staticmethod
+    def unique_id() -> int:
         """Return an integer that does not exist in the db."""
-        return hash(ObjectId())
+        return ObjectId_to_int(ObjectId())
 
     def stop_tasks_db(self):
         """Disconnect from the db."""

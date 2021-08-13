@@ -5,7 +5,7 @@ from tasks import Task
 
 
 @pytest.mark.xfail()
-def test_unique_id_1():
+def test_unique_id_1(tasks_db):
     """Calling unique_id() twice should return different values."""
     # GIVEN a task db
     # WHEN unique_id is called twice
@@ -15,7 +15,7 @@ def test_unique_id_1():
     assert id_1 != id_2
 
 
-def test_unique_id_2():
+def test_unique_id_2(tasks_db):
     """unique_id() should return asn unused id"""
     # GIVEN a task db
     

@@ -11,4 +11,5 @@ from .api import (Task,
                   delete_all,
                   unique_id,
                   start_tasks_db,
-                  stop_tasks_db)
+                  stop_tasks_db,
+                  UninitializedDatabase)
